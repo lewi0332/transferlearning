@@ -130,3 +130,8 @@ dmypy.json
 
 *.csv
 .DS_Store
+
+*.jpg
+*.jpeg
+*.png
+*.jp2
