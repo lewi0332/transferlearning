@@ -1,10 +1,10 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 try:
-  # Use the %tensorflow_version magic if in colab.
-  %tensorflow_version 2.x
+    # Use the %tensorflow_version magic if in colab.
+    %tensorflow_version 2.x
 except Exception:
-  pass
+    pass
 
 import tensorflow as tf
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
@@ -21,7 +21,7 @@ import matplotlib.pyplot as plt
 import PIL.Image as Image
 import tensorflow_hub as hub
 
-os.environ['KMP_DUPLICATE_LIB_OK']='True'
+os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 
 
 base_dir = 'labeled_data'
@@ -53,66 +53,69 @@ classes = [
     "menswear",
     "ocean",
     "outfit",
+    "parenting",
     "pet",
     "plant",
     "selfie",
     "shoes",
     "sun",
     "text",
-    "wedding",
+    "wedding"
 ]
 
-# for cl in classes:
-#   img_path = os.path.join(base_dir, cl)
-#   images = glob.glob(img_path + '/*.jpg')
-#   print("{}: {} Images".format(cl, len(images)))
-#   num_train = int(round(len(images)*0.8))
-#   train, val = images[:num_train], images[num_train:]
+for cl in classes:
+    img_path = os.path.join(base_dir, cl)
+    images = glob.glob(img_path + '/*.jpg')
+    print("{}: {} Images".format(cl, len(images)))
+    num_train = int(round(len(images)*0.8))
+    train, val = images[:num_train], images[num_train:]
 
-#   for t in train:
-#     if not os.path.exists(os.path.join(base_dir, 'train', cl)):
-#       os.makedirs(os.path.join(base_dir, 'train', cl))
-#     shutil.move(t, os.path.join(base_dir, 'train', cl))
+    for t in train:
+        if not os.path.exists(os.path.join(base_dir, 'train', cl)):
+            os.makedirs(os.path.join(base_dir, 'train', cl))
+        shutil.move(t, os.path.join(base_dir, 'train', cl))
 
-#   for v in val:
-#     if not os.path.exists(os.path.join(base_dir, 'val', cl)):
-#       os.makedirs(os.path.join(base_dir, 'val', cl))
-#     shutil.move(v, os.path.join(base_dir, 'val', cl))
+    for v in val:
+        if not os.path.exists(os.path.join(base_dir, 'val', cl)):
+            os.makedirs(os.path.join(base_dir, 'val', cl))
+        shutil.move(v, os.path.join(base_dir, 'val', cl))
 
 train_dir = os.path.join(base_dir, 'train')
 val_dir = os.path.join(base_dir, 'val')
 
 BATCH_SIZE = 100
-IMG_SHAPE = 224
-IMAGE_RES = 224
+IMG_SHAPE = 299
+IMAGE_RES = 299
 
 # This function will plot images in the form of a grid with 1 row and 5 columns where images are placed in each column.
+
+
 def plotImages(images_arr):
-    fig, axes = plt.subplots(1, 5, figsize=(20,20))
+    fig, axes = plt.subplots(1, 5, figsize=(20, 20))
     axes = axes.flatten()
-    for img, ax in zip( images_arr, axes):
+    for img, ax in zip(images_arr, axes):
         ax.imshow(img)
     plt.tight_layout()
     plt.show()
 
 
 image_gen_train = ImageDataGenerator(
-                    rescale=1./255,
-                    rotation_range=45,
-                    width_shift_range=.15,
-                    height_shift_range=.15,
-                    horizontal_flip=True,
-                    zoom_range=0.5
-                    )
+    rescale=1./255,
+    rotation_range=45,
+    width_shift_range=.15,
+    height_shift_range=.15,
+    horizontal_flip=True,
+    zoom_range=0.5
+)
 
 
 train_data_gen = image_gen_train.flow_from_directory(
-                                                batch_size=BATCH_SIZE,
-                                                directory=train_dir,
-                                                shuffle=True,
-                                                target_size=(IMG_SHAPE,IMG_SHAPE),
-                                                class_mode='sparse'
-                                                )
+    batch_size=BATCH_SIZE,
+    directory=train_dir,
+    shuffle=True,
+    target_size=(IMG_SHAPE, IMG_SHAPE),
+    class_mode='sparse'
+)
 
 augmented_images = [train_data_gen[0][0][0] for i in range(5)]
 plotImages(augmented_images)
@@ -121,16 +124,17 @@ image_gen_val = ImageDataGenerator(rescale=1./255)
 
 val_data_gen = image_gen_val.flow_from_directory(batch_size=BATCH_SIZE,
                                                  directory=val_dir,
-                                                 target_size=(IMG_SHAPE, IMG_SHAPE),
+                                                 target_size=(
+                                                     IMG_SHAPE, IMG_SHAPE),
                                                  class_mode='sparse')
 
-URL = "https://tfhub.dev/google/tf2-preview/mobilenet_v2/feature_vector/2"
+URL = "https://tfhub.dev/google/imagenet/inception_v3/classification/4"
 feature_extractor = hub.KerasLayer(URL,
-                                   input_shape=(IMAGE_RES, IMAGE_RES,3))
+                                   input_shape=(IMAGE_RES, IMAGE_RES, 3))
 
 model = tf.keras.Sequential([
-  feature_extractor,
-  layers.Dense(30, activation='softmax')
+    feature_extractor,
+    layers.Dense(31, activation='softmax')
 ])
 
 model.summary()
@@ -158,16 +162,15 @@ model.compile(optimizer='adam',
               loss='sparse_categorical_crossentropy',
               metrics=['accuracy'])
 
-epochs = 3
+epochs = 10
 
 history = model.fit(
     train_data_gen,
-    steps_per_epoch=int(np.ceil(train_data_gen.n / float(batch_size))),
+    steps_per_epoch=int(np.ceil(train_data_gen.n / float(BATCH_SIZE))),
     epochs=epochs,
     validation_data=val_data_gen,
-    validation_steps=int(np.ceil(val_data_gen.n / float(batch_size)))
+    validation_steps=int(np.ceil(val_data_gen.n / float(BATCH_SIZE)))
 )
-
 
 
 acc = history.history['accuracy']
